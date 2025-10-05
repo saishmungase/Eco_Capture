@@ -10,8 +10,19 @@ import torch
 import torchvision.transforms as transforms
 from torchvision import models
 import torch.nn.functional as F
+from fastapi.middleware.cors import CORSMiddleware  # <-- import this
 
 app = FastAPI()
+
+# --- CORS setup ---
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # <-- allows all origins
+    allow_credentials=True,
+    allow_methods=["*"],   # <-- allows all HTTP methods (GET, POST, etc.)
+    allow_headers=["*"],   # <-- allows all headers
+)
+# -------------------
 
 # Download ImageNet labels (used to turn index -> human label)
 LABELS_URL = "https://raw.githubusercontent.com/pytorch/hub/master/imagenet_classes.txt"
