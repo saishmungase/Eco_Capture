@@ -215,7 +215,7 @@ export default function EcoCapturePage() {
           <div className="w-full px-4 sm:px-6 lg:px-8 py-8 space-y-8">
             {/* Product Name */}
             <div className="text-center">
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold text-gray-900 mb-4 px-4">{result.result}</h1>
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold text-gray-900 mb-4 px-4">{result.product}</h1>
               <button
                 onClick={() => setShowAlternatives(true)}
                 className="text-green-600 bg-green-50 px-5 py-2.5 rounded-full text-base flex items-center gap-2 mx-auto hover:bg-green-100 font-medium transition-colors border border-green-200"
@@ -391,7 +391,7 @@ export default function EcoCapturePage() {
                   {result.maps.map((location, index) => (
                     <div key={index} className="transform transition-all duration-200 hover:scale-105 active:scale-95">
                       <a
-                        href={location.url}
+                        href={location}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center gap-5 bg-white rounded-2xl p-6 sm:p-7 shadow-lg border-2 border-gray-200 hover:border-green-500 hover:shadow-2xl transition-all cursor-pointer"
@@ -402,7 +402,7 @@ export default function EcoCapturePage() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-bold text-lg sm:text-xl text-gray-900 mb-2">{location.name}</p>
-                          <p className="text-gray-700 text-sm sm:text-base line-clamp-2">{location.address}</p>
+                          <p className="text-gray-700 text-sm sm:text-base line-clamp-2">{location}</p>
                         </div>
                         <ExternalLink className="w-6 h-6 text-green-600 flex-shrink-0" />
                       </a>

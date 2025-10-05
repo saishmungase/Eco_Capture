@@ -110,6 +110,15 @@ def extract_google_maps_links(text):
     
     return unique_links
 
+def get_top_3_locations(place_name):
+    search_query = place_name.replace(' ', '+')
+    return [
+        f"https://www.google.com/maps/search/{search_query}+near+Viman+Nagar+Pune",
+        f"https://www.google.com/maps/search/{search_query}+near+Pune",
+        f"https://www.google.com/maps/search/{search_query}+recycling+center"
+    ]
+
+
 def clean_description(text, maps_links):
     """Clean and format the description text"""
     # Remove all Maps URLs
@@ -166,7 +175,6 @@ Please provide a clear and concise response."""
         
         headers = {'Content-Type': 'application/json'}
         
-        print(f"\n🔍 Querying Gemini for: {object_name}")
         
         response = requests.post(url, json=payload, headers=headers, timeout=20)
         
@@ -178,12 +186,6 @@ Please provide a clear and concise response."""
                 return None
                 
             bot_response = data['candidates'][0]['content']['parts'][0]['text']
-            
-            print(f"\n{'='*60}")
-            print(f"RAW GEMINI RESPONSE:")
-            print(f"{'='*60}")
-            print(bot_response)
-            print(f"{'='*60}\n")
             
             # Clean description (no maps links to remove now)
             description = bot_response.strip()
@@ -211,7 +213,12 @@ Please provide a clear and concise response."""
                 f"https://www.google.com/maps/search/recycling+centers+near+me",
                 f"https://www.google.com/maps/search/{search_query}+recycling+center+near+me"
             ]
+            maps_links = get_top_3_locations((object_name + " disposable place near me" ))
             # Determine recyclability from Gemini response
+
+            print("======== Map Links ========")
+            for link in maps_links:
+                print(link)
             bot_response_lower = bot_response.lower()
             if "recyclable: yes" in bot_response_lower or bot_response_lower.startswith("yes"):
                 recyclable = "yes"
@@ -221,12 +228,6 @@ Please provide a clear and concise response."""
                 # Fallback: check if recyclable mentioned in description
                 description_lower = description.lower()
                 recyclable = "yes" if ("recyclable" in description_lower or "can be recycled" in description_lower) and "not recyclable" not in description_lower else "no"
-            
-            print(f"✅ PARSED SUCCESSFULLY:")
-            print(f"Description: {description[:200]}...")
-            print(f"YouTube Links: {youtube_links}")
-            print(f"Maps Links: {maps_links}")
-            print(f"Recyclable: {recyclable}\n")
             
             return {
                 'description': description,
@@ -325,7 +326,7 @@ async def update_product(request: UpdateRequest):
         print(f"\n🔄 Update request for: {request.product}")
         
         gemini_result = query_gemini(request.product)
-        
+        print(gemini_result)
         response_data = {
             "id": request.id,
             "product": request.product,
