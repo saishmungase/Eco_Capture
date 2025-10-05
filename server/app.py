@@ -1,7 +1,10 @@
-# app.py
+import os
+import re
+import requests
 from fastapi import FastAPI, File, UploadFile
 from fastapi.responses import JSONResponse
-import io, requests
+from pydantic import BaseModel
+import io
 from PIL import Image
 import torch
 import torchvision.transforms as transforms
@@ -42,3 +45,114 @@ async def predict(file: UploadFile = File(...)):
         topk = torch.topk(probs, k=5)
     results = [{"label": labels[idx], "prob": float(prob)} for idx, prob in zip(topk.indices.tolist(), topk.values.tolist())]
     return JSONResponse({"predictions": results})
+
+
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', 'AIzaSyBBoAe7kJ-QwpEUy0bYZ32p6xQZ6zU6z44')
+GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent'
+
+# Pydantic model for request body
+class ChatRequest(BaseModel):
+    message: str
+
+def extract_youtube_links(text):
+    """Extract all YouTube links from text"""
+    patterns = [
+        r'https?://(?:www\.)?youtube\.com/watch\?v=[\w-]+(?:&[\w=%-]*)?',
+        r'https?://(?:www\.)?youtu\.be/[\w-]+(?:\?[\w=%-]*)?',
+        r'https?://(?:www\.)?youtube\.com/embed/[\w-]+',
+        r'https?://(?:www\.)?youtube\.com/shorts/[\w-]+',
+    ]
+    
+    youtube_links = []
+    for pattern in patterns:
+        matches = re.findall(pattern, text)
+        youtube_links.extend(matches)
+    
+    unique_links = list(dict.fromkeys(youtube_links))
+    return unique_links
+
+def parse_response(bot_response):
+    """Parse the bot response to extract description and YouTube links"""
+    youtube_links = extract_youtube_links(bot_response)
+    
+    description = bot_response
+    for link in youtube_links:
+        description = description.replace(link, '')
+    
+    description = re.sub(r'\n\s*\n', '\n\n', description)
+    description = description.strip()
+    
+    return description, youtube_links
+
+@app.post('/chat')
+async def chat(chat_request: ChatRequest):
+    try:
+        user_message = chat_request.message
+        
+        if not user_message:
+            return JSONResponse(
+                status_code=400,
+                content={'error': 'No message provided'}
+            )
+        
+        payload = {
+            "contents": [
+                {
+                    "parts": [
+                        {
+                            "text": user_message
+                        }
+                    ]
+                }
+            ]
+        }
+        
+        headers = {
+            'Content-Type': 'application/json',
+            'X-goog-api-key': GEMINI_API_KEY
+        }
+        
+        response = requests.post(GEMINI_API_URL, json=payload, headers=headers)
+        
+        if response.status_code == 200:
+            data = response.json()
+            bot_response = data['candidates'][0]['content']['parts'][0]['text']
+            
+            description, youtube_links = parse_response(bot_response)
+            
+            # Debug prints
+            print("\n" + "="*50)
+            print("RAW RESPONSE:")
+            print("="*50)
+            print(bot_response)
+            print("\n" + "="*50)
+            print("PARSED DESCRIPTION:")
+            print("="*50)
+            print(description)
+            print("\n" + "="*50)
+            print("YOUTUBE LINKS ARRAY:")
+            print("="*50)
+            print(youtube_links)
+            print("="*50 + "\n")
+            
+            return JSONResponse(content={
+                'description': description,
+                'youtube_links': youtube_links,
+                'raw_response': bot_response
+            })
+        else:
+            return JSONResponse(
+                status_code=500,
+                content={'error': f'API Error: {response.status_code} - {response.text}'}
+            )
+    
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        return JSONResponse(
+            status_code=500,
+            content={'error': str(e)}
+        )
+
+if __name__ == '__main__':
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
