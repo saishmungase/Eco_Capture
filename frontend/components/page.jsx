@@ -49,7 +49,7 @@ export default function EcoCapturePage() {
     formData.append("file", file)
 
     try {
-      const response = await fetch("http://localhost:8080/predict", {
+      const response = await fetch("https://eco-capture.onrender.com/predict", {
         method: "POST",
         body: formData,
       })
@@ -73,7 +73,7 @@ export default function EcoCapturePage() {
     setStep("loading")
 
     try {
-      const response = await fetch("http://localhost:8080/update", {
+      const response = await fetch("https://eco-capture.onrender.com/update", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
